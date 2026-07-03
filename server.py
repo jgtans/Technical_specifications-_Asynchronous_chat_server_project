@@ -72,7 +72,7 @@ class ChatServer:
 
         except asyncio.CancelledError:
             pass
-        except ConnectionResetError:
+        except (ConnectionResetError, ConnectionAbortedError):
             pass
         except Exception as e:
             logging.error(f"Error handling client {username}: {e}")
@@ -142,7 +142,7 @@ class ChatServer:
 
 
 if __name__ == '__main__':
-    chat_server = ChatServer()
+    chat_server = ChatServer(host='127.0.0.1', port=9999)
     try:
         asyncio.run(chat_server.start())
     except KeyboardInterrupt:

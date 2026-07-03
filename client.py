@@ -26,6 +26,12 @@ async def send_messages(writer):
                 break
             message = line.strip()
             if message:
+                # Обработка команды /quit локально
+                if message.lower() == '/quit':
+                    print("Disconnecting from the server...", flush=True)
+                    writer.close()
+                    await writer.wait_closed()
+                    break
                 writer.write((message + '\n').encode('utf-8'))
                 await writer.drain()
     except asyncio.CancelledError:
@@ -34,7 +40,7 @@ async def send_messages(writer):
         print(f"\nError sending message: {e}")
 
 
-async def start_client(host='127.0.0.1', port=8888):
+async def start_client(host='127.0.0.1', port=9999):
     try:
         reader, writer = await asyncio.open_connection(host, port)
     except ConnectionRefusedError:
@@ -44,8 +50,15 @@ async def start_client(host='127.0.0.1', port=8888):
     print("Connected to the server.")
 
     # Чтение запроса имени пользователя
-    prompt_data = await reader.readline()
-    print(prompt_data.decode('utf-8').strip(), end=" ", flush=True)
+    print("Waiting for server response...", flush=True)
+    try:
+        prompt_data = await asyncio.wait_for(reader.readline(), timeout=5.0)
+        if prompt_data:
+            print(prompt_data.decode('utf-8').strip(), end=" ", flush=True)
+        else:
+            print("No response from server (empty data).", flush=True)
+    except asyncio.TimeoutError:
+        print("Timeout: No response from server within 5 seconds.", flush=True)
 
     loop = asyncio.get_running_loop()
     username = (await loop.run_in_executor(None, sys.stdin.readline)).strip()
